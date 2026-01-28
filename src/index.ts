@@ -551,6 +551,37 @@ app.get('/login', async (c) => {
                 <button class="btn btn-secondary" onclick="checkSession()">
                     Check Existing Session
                 </button>
+                
+                <!-- Google Sign-In Divider -->
+                <div style="margin: 20px 0; text-align: center;">
+                  <div style="height: 1px; background: #e5e7eb; margin: 20px 0; position: relative;">
+                    <span style="background: white; padding: 0 10px; position: absolute; top: -10px; left: 50%; transform: translateX(-50%); color: #6b7280;">Or</span>
+                  </div>
+                  
+                  <button onclick="signInWithGoogle()" style="
+                    width: 100%;
+                    padding: 12px;
+                    background: white;
+                    border: 2px solid #e5e7eb;
+                    border-radius: 10px;
+                    font-weight: 600;
+                    color: #374151;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 10px;
+                    transition: all 0.3s;
+                  ">
+                    <svg width="20" height="20" viewBox="0 0 24 24">
+                      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                    </svg>
+                    Continue with Google
+                  </button>
+                </div>
             </div>
             
             <!-- Signup Form -->
@@ -590,6 +621,37 @@ app.get('/login', async (c) => {
                 <button class="btn btn-secondary" onclick="showTab('login')">
                     Already have an account? Sign In
                 </button>
+                
+                <!-- Google Sign-Up Divider -->
+                <div style="margin: 20px 0; text-align: center;">
+                  <div style="height: 1px; background: #e5e7eb; margin: 20px 0; position: relative;">
+                    <span style="background: white; padding: 0 10px; position: absolute; top: -10px; left: 50%; transform: translateX(-50%); color: #6b7280;">Or</span>
+                  </div>
+                  
+                  <button onclick="signUpWithGoogle()" style="
+                    width: 100%;
+                    padding: 12px;
+                    background: white;
+                    border: 2px solid #e5e7eb;
+                    border-radius: 10px;
+                    font-weight: 600;
+                    color: #374151;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 10px;
+                    transition: all 0.3s;
+                  ">
+                    <svg width="20" height="20" viewBox="0 0 24 24">
+                      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                    </svg>
+                    Sign Up with Google
+                  </button>
+                </div>
             </div>
             
             <!-- User Profile -->
@@ -663,8 +725,17 @@ app.get('/login', async (c) => {
         document.addEventListener('DOMContentLoaded', function() {
             checkAPIHealth();
             
-            // Check if user is already logged in
-            if (accessToken) {
+            // Check if we have Google auth tokens in localStorage
+            const googleAccessToken = localStorage.getItem('access_token');
+            const googleUser = localStorage.getItem('user');
+            
+            if (googleAccessToken && googleUser) {
+                // We're already logged in via Google
+                currentUser = JSON.parse(googleUser);
+                accessToken = googleAccessToken;
+                showProfile();
+            } else if (accessToken) {
+                // Check if user is already logged in via regular auth
                 checkSession();
             }
         });
@@ -1049,6 +1120,94 @@ app.get('/login', async (c) => {
                 }
             }
         });
+        
+        // Google Sign In function
+        async function signInWithGoogle() {
+            try {
+                // Show loading
+                showLoading(true);
+                
+                // Start Google auth
+                const response = await fetch('/api/auth/google', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        redirect_to: window.location.origin + '/api/auth/callback'
+                    })
+                });
+                
+                const result = await response.json();
+                showLoading(false);
+                
+                if (result.success) {
+                    // Open Google auth in popup
+                    const width = 500;
+                    const height = 600;
+                    const left = window.screen.width / 2 - width / 2;
+                    const top = window.screen.height / 2 - height / 2;
+                    
+                    const popup = window.open(
+                        result.data.url, 
+                        'Google Auth',
+                        \`width=\${width},height=\${height},top=\${top},left=\${left},resizable=yes,scrollbars=yes\`
+                    );
+                    
+                    // Listen for auth success message
+                    const messageHandler = function(event) {
+                        if (event.data.type === 'google-auth-success') {
+                            // Save tokens
+                            localStorage.setItem('access_token', event.data.tokens.access_token);
+                            localStorage.setItem('refresh_token', event.data.tokens.refresh_token);
+                            localStorage.setItem('user', JSON.stringify(event.data.user));
+                            
+                            currentUser = event.data.user;
+                            accessToken = event.data.tokens.access_token;
+                            refreshToken = event.data.tokens.refresh_token;
+                            
+                            // Hide popup
+                            if (popup) popup.close();
+                            
+                            // Update UI
+                            showProfile();
+                            showAlert('success', 'Signed in with Google!');
+                            
+                            // Remove listener
+                            window.removeEventListener('message', messageHandler);
+                        } else if (event.data.type === 'google-auth-error') {
+                            // Handle auth errors
+                            showAlert('error', event.data.error || 'Google authentication failed');
+                            
+                            // Hide popup
+                            if (popup) popup.close();
+                            
+                            // Remove listener
+                            window.removeEventListener('message', messageHandler);
+                        }
+                    };
+                    
+                    window.addEventListener('message', messageHandler);
+                    
+                    // Check if popup was blocked
+                    if (!popup || popup.closed || typeof popup.closed == 'undefined') {
+                        showAlert('error', 'Popup blocked! Please allow popups for this site.');
+                        window.removeEventListener('message', messageHandler);
+                    }
+                } else {
+                    showAlert('error', result.error || 'Google sign in failed');
+                }
+            } catch (error) {
+                showLoading(false);
+                showAlert('error', 'Google sign in failed. Please try again.');
+                console.error('Google sign in error:', error);
+            }
+        }
+        
+        // Google Sign Up function (same as sign in)
+        async function signUpWithGoogle() {
+            // Sign up with Google is the same flow as sign in
+            // Supabase automatically creates an account if it doesn't exist
+            signInWithGoogle();
+        }
     </script>
 </body>
 </html>
